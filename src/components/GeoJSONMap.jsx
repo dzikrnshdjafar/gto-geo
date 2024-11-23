@@ -1,32 +1,43 @@
-import { MapContainer, TileLayer, GeoJSON, Popup, LayersControl } from 'react-leaflet';
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { MapContainer, TileLayer, GeoJSON, LayersControl as LeafletLayersControl } from "react-leaflet";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import LayersControl from "./LayersControl"; // Import komponen LayersControl
 
 const GeoJSONMap = () => {
   const [geoData, setGeoData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeLayers, setActiveLayers] = useState([]); // Track active layers
 
-  // Array color GeoJSON
   const earthPalette = [
-    "#5D3A1A", // Deep Earth Brown
-    "#A6825D", // Warm Sandstone
-    "#C4AE78", // Golden Sand
-    "#8A9A5B", // Moss Green
-    "#4A6A5A", // Pine Forest Green
-    "#D1B894", // Soft Clay
-    "#726255", // Stone Gray
-    "#9C7651", // Dried Earth
-    "#687864", // Sagebrush Green
-    "#BDA27F"  // Desert Beige
+    "#5D3A1A", "#A6825D", "#C4AE78", "#8A9A5B", "#4A6A5A",
+    "#D1B894", "#726255", "#9C7651", "#687864", "#BDA27F"
   ];  
 
+  const tileLayers = [
+    {
+      name: "Dark Mode",
+      url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      attribution: "© OpenStreetMap contributors & CARTO",
+    },
+    {
+      name: "Light Mode",
+      url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+      attribution: "© OpenStreetMap contributors & CARTO",
+    },
+    {
+      name: "Satellite",
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      attribution: "Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics",
+    },
+  ];
+
   useEffect(() => {
-    // Fetch all GeoJSON
     setLoading(true);
     axios.get(`${import.meta.env.VITE_APP_API_GEO}`)
       .then(response => {
         setGeoData(response.data);
         setLoading(false);
+        setActiveLayers(response.data.map(geo => geo.name));
       })
       .catch(error => {
         console.error('Error fetching geojson:', error);
@@ -34,49 +45,64 @@ const GeoJSONMap = () => {
       });
   }, []);
 
-  // Function for geoJSON color
-  const getGeoJSONStyle = (index) => {
-    return {
-      color: earthPalette[index % earthPalette.length], 
-      weight: 2,
-      fillOpacity : 0.2
-    };
-  };
-  // Function for geoJSON hover
-  const getGeoJSONHover = (index) => {
-    return {
-      color: earthPalette[index % earthPalette.length], 
-      weight: 5,
-      fillOpacity: 0.8
-    };
+  const toggleLayer = (layerName) => {
+    setActiveLayers((prev) =>
+      prev.includes(layerName)
+        ? prev.filter((name) => name !== layerName)
+        : [...prev, layerName]
+    );
   };
 
+  const getGeoJSONStyle = (index) => ({
+    color: earthPalette[index % earthPalette.length],
+    weight: 2,
+    fillOpacity: 0.2,
+  });
+
+  const getGeoJSONHover = (index) => ({
+    color: earthPalette[index % earthPalette.length],
+    weight: 5,
+    fillOpacity: 0.8,
+  });
+
   return (
-    <>
+    <div className="relative">
+        <LayersControl
+          geoData={geoData}
+          activeLayers={activeLayers}
+          toggleLayer={toggleLayer}
+        />
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '20px' }}>Memuat data...</div>
+        <div style={{ textAlign: "center", padding: "20px" }}>Memuat data...</div>
       ) : (
-        <MapContainer center={[0.7047498986879579, 122.43409669232882]} zoom={9} style={{ height: '500px', width: '100%' }}>
-          <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-            attribution="Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
-          />
-          <LayersControl position="topright">
-            {geoData.map((geojson, index) => (
-              <LayersControl.Overlay 
-                key={index} 
-                name={geojson.name} 
-                checked 
+        <MapContainer
+          center={[0.7047498986879579, 122.43409669232882]}
+          zoom={10}
+          className="h-screen z-10"
+        >
+          <LeafletLayersControl position="topright">
+            {tileLayers.map((tile, index) => (
+              <LeafletLayersControl.BaseLayer
+                key={index}
+                name={tile.name}
+                checked={index === 0}
               >
+                <TileLayer url={tile.url} attribution={tile.attribution} />
+              </LeafletLayersControl.BaseLayer>
+            ))}
+
+            {geoData.map((geojson, index) =>
+              activeLayers.includes(geojson.name) && (
                 <GeoJSON
+                  key={index}
                   data={geojson}
                   style={() => getGeoJSONStyle(index)}
                   onEachFeature={(feature, layer) => {
                     if (feature.properties && feature.properties.NAMOBJ) {
-                      layer.bindPopup(`<div><strong>${feature.properties.NAMOBJ}</strong></div>`);
+                      layer.bindPopup(
+                        `<div><strong>${feature.properties.NAMOBJ}</strong></div><br><div>Luas : ${feature.properties.LUAS}</div>`
+                      );
                     }
-
-                    // styling geoJSON hover
                     layer.on({
                       mouseover: (e) => {
                         const targetLayer = e.target;
@@ -85,16 +111,16 @@ const GeoJSONMap = () => {
                       mouseout: (e) => {
                         const targetLayer = e.target;
                         targetLayer.setStyle(getGeoJSONStyle(index));
-                      }
+                      },
                     });
                   }}
                 />
-              </LayersControl.Overlay>
-            ))}
-          </LayersControl>
+              )
+            )}
+          </LeafletLayersControl>
         </MapContainer>
       )}
-    </>
+    </div>
   );
 };
 

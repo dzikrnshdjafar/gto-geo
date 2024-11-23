@@ -1,12 +1,10 @@
-import Card from "./components/Card";
 import GeoJSONMap from "./components/GeoJSONMap";
 
 function App() {
   return (
-    <div className="p-4 min-h-screen bg-gradient-to-r from-gray-800">
-      <Card title="Batas Adminstrasi Provinsi Gorontalo">
+    <div className="bg-transparent">
+
         <GeoJSONMap />
-      </Card>
     </div>
   );
 }

@@ -8,7 +8,7 @@ const LayersControl = ({ geoData, activeLayers, toggleLayer }) => {
 
   return (
     <motion.div
-      className="absolute h-5/6 top-20 right-3 z-20 shadow-lg rounded-xl bg-emerald-200 overflow-hidden"
+      className="absolute h-[55rem] top-3 right-3 z-20 shadow-lg rounded-xl bg-emerald-200 overflow-hidden"
       initial={{ width: "16rem" }} // Default width
       animate={{ width: isCollapsed ? "3rem" : "16rem" }} // Animasi collapse
       transition={{ duration: 0.3, ease: "easeInOut" }}

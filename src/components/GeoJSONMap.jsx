@@ -2,6 +2,9 @@ import { MapContainer, TileLayer, GeoJSON, LayersControl as LeafletLayersControl
 import { useState, useEffect } from "react";
 import axios from "axios";
 import LayersControl from "./LayersControl"; // Import komponen LayersControl
+import LoadingAnimated from "./LoadingAnimated";
+import { divIcon } from "leaflet";
+import { div } from "framer-motion/client";
 
 const GeoJSONMap = () => {
   const [geoData, setGeoData] = useState([]);
@@ -28,6 +31,11 @@ const GeoJSONMap = () => {
       name: "Satellite",
       url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       attribution: "Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics",
+    },
+    {
+      name: "OpenStreetMap",
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: `&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors`,
     },
   ];
 
@@ -67,25 +75,23 @@ const GeoJSONMap = () => {
 
   return (
     <div className="relative">
-        <LayersControl
-          geoData={geoData}
-          activeLayers={activeLayers}
-          toggleLayer={toggleLayer}
-        />
       {loading ? (
-        <div style={{ textAlign: "center", padding: "20px" }}>Memuat data...</div>
+        <div className="flex items-center justify-center min-h-screen">
+          <LoadingAnimated/>
+        </div>
       ) : (
+        <>
         <MapContainer
           center={[0.7047498986879579, 122.43409669232882]}
           zoom={10}
           className="h-screen z-10"
-        >
-          <LeafletLayersControl position="topright">
+          >
+          <LeafletLayersControl position="topleft">
             {tileLayers.map((tile, index) => (
               <LeafletLayersControl.BaseLayer
-                key={index}
-                name={tile.name}
-                checked={index === 0}
+              key={index}
+              name={tile.name}
+              checked={index === 0}
               >
                 <TileLayer url={tile.url} attribution={tile.attribution} />
               </LeafletLayersControl.BaseLayer>
@@ -94,31 +100,37 @@ const GeoJSONMap = () => {
             {geoData.map((geojson, index) =>
               activeLayers.includes(geojson.name) && (
                 <GeoJSON
-                  key={index}
-                  data={geojson}
-                  style={() => getGeoJSONStyle(index)}
-                  onEachFeature={(feature, layer) => {
-                    if (feature.properties && feature.properties.NAMOBJ) {
-                      layer.bindPopup(
-                        `<div><strong>${feature.properties.NAMOBJ}</strong></div><br><div>Luas : ${feature.properties.LUAS}</div>`
-                      );
-                    }
-                    layer.on({
-                      mouseover: (e) => {
-                        const targetLayer = e.target;
-                        targetLayer.setStyle(getGeoJSONHover(index));
-                      },
-                      mouseout: (e) => {
-                        const targetLayer = e.target;
-                        targetLayer.setStyle(getGeoJSONStyle(index));
-                      },
-                    });
-                  }}
+                key={index}
+                data={geojson}
+                style={() => getGeoJSONStyle(index)}
+                onEachFeature={(feature, layer) => {
+                  if (feature.properties && feature.properties.NAMOBJ) {
+                    layer.bindPopup(
+                      `<div><strong>${feature.properties.NAMOBJ}</strong></div><br><div>Luas : ${feature.properties.LUAS}</div>`
+                    );
+                  }
+                  layer.on({
+                    mouseover: (e) => {
+                      const targetLayer = e.target;
+                      targetLayer.setStyle(getGeoJSONHover(index));
+                    },
+                    mouseout: (e) => {
+                      const targetLayer = e.target;
+                      targetLayer.setStyle(getGeoJSONStyle(index));
+                    },
+                  });
+                }}
                 />
               )
             )}
           </LeafletLayersControl>
         </MapContainer>
+        <LayersControl
+          geoData={geoData}
+          activeLayers={activeLayers}
+          toggleLayer={toggleLayer}
+          />
+      </>
       )}
     </div>
   );

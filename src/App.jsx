@@ -2,8 +2,7 @@ import GeoJSONMap from "./components/GeoJSONMap";
 
 function App() {
   return (
-    <div className="bg-transparent">
-
+    <div className="bg-neutral-700">
         <GeoJSONMap />
     </div>
   );
